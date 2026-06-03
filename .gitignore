@@ -1,0 +1,58 @@
+# Dependencies
+node_modules/
+**/node_modules/
+
+# Build outputs and caches
+dist/
+**/dist/
+build/
+**/build/
+out/
+**/out/
+.next/
+**/.next/
+.vite/
+**/.vite/
+.turbo/
+**/.turbo/
+coverage/
+**/coverage/
+
+# Tauri, Rust, and packaged desktop artifacts
+target/
+**/target/
+apps/desktop/src-tauri/target/
+release/
+**/release/
+*.msi
+*.exe
+*.nsis.zip
+*.appx
+*.appxbundle
+
+# Environment and secrets
+.env
+.env.*
+!.env.example
+!.env.local-smoke.example
+
+# Local Codex/dev runtime state
+.codex/
+.local/
+
+# Logs
+*.log
+*.log.*
+npm-debug.log*
+pnpm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# OS and editor files
+.DS_Store
+Thumbs.db
+desktop.ini
+.idea/
+.vscode/
+*.swp
+*.swo

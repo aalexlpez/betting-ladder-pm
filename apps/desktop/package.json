@@ -1,0 +1,27 @@
+{
+  "name": "@prediction-ladder/desktop",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "tauri dev",
+    "dev:vite": "vite --host 127.0.0.1 --port 1420 --strictPort",
+    "build": "tsc --noEmit -p tsconfig.json && vite build",
+    "build:vite": "vite build",
+    "typecheck": "tsc --noEmit -p tsconfig.json",
+    "lint": "eslint . --max-warnings=0",
+    "test": "vitest run",
+    "package:win": "tauri build --bundles msi,nsis"
+  },
+  "type": "module",
+  "dependencies": {
+    "@prediction-ladder/core": "workspace:*",
+    "@tauri-apps/api": "2.6.0",
+    "react": "19.1.0",
+    "react-dom": "19.1.0"
+  },
+  "devDependencies": {
+    "@tauri-apps/cli": "2.8.4",
+    "@vitejs/plugin-react": "6.0.2",
+    "vite": "8.0.8"
+  }
+}

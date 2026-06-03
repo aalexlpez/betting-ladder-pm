@@ -1,0 +1,49 @@
+{
+  "name": "prediction-ladder-monorepo",
+  "version": "0.1.0",
+  "private": true,
+  "packageManager": "pnpm@10.0.0",
+  "engines": {
+    "node": ">=20.19.0 <21 || >=22.12.0"
+  },
+  "scripts": {
+    "dev": "turbo dev",
+    "desktop:dev": "pnpm --filter @prediction-ladder/desktop dev",
+    "landing:dev": "pnpm --filter @prediction-ladder/landing dev",
+    "test": "turbo test",
+    "typecheck": "turbo typecheck",
+    "lint": "turbo lint",
+    "build": "turbo build",
+    "package:win": "pnpm --filter @prediction-ladder/desktop package:win",
+    "ai:session-start": "node --preserve-symlinks-main scripts/ai/session-start.mjs",
+    "ai:quality-gate": "node --preserve-symlinks-main scripts/ai/quality-gate.mjs",
+    "ai:live-preflight": "node --preserve-symlinks-main scripts/ai/live-preflight.mjs",
+    "ai:new-adr": "node --preserve-symlinks-main scripts/ai/new-adr.mjs",
+    "ai:check-no-fake-gates": "node --preserve-symlinks-main scripts/ai/check-no-fake-gates.mjs",
+    "format:check": "prettier --check .",
+    "format:write": "prettier --write ."
+  },
+  "devDependencies": {
+    "@eslint/js": "9.29.0",
+    "@rolldown/binding-win32-x64-msvc": "1.0.0-rc.15",
+    "@tauri-apps/cli": "2.8.4",
+    "@types/node": "22.15.30",
+    "@types/react": "19.1.8",
+    "@types/react-dom": "19.1.6",
+    "@vitejs/plugin-react": "6.0.2",
+    "eslint": "9.29.0",
+    "prettier": "3.5.3",
+    "react": "19.1.0",
+    "react-dom": "19.1.0",
+    "turbo": "2.5.4",
+    "typescript": "5.8.3",
+    "typescript-eslint": "8.34.1",
+    "vite": "8.0.8",
+    "vitest": "3.2.4"
+  },
+  "pnpm": {
+    "onlyBuiltDependencies": [
+      "esbuild"
+    ]
+  }
+}
