@@ -93,9 +93,6 @@ importers:
 
   apps/landing:
     dependencies:
-      '@prediction-ladder/i18n':
-        specifier: workspace:*
-        version: link:../../packages/i18n
       '@prediction-ladder/ui':
         specifier: workspace:*
         version: link:../../packages/ui
