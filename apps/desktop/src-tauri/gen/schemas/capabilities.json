@@ -1,0 +1,1 @@
+{"main":{"identifier":"main","description":"Main trading window with no filesystem, shell, or provider SDK permissions.","local":true,"windows":["main"],"permissions":["core:default","app-trading-commands"]}}

@@ -15,6 +15,9 @@
   "type": "module",
   "dependencies": {
     "@prediction-ladder/core": "workspace:*",
+    "@prediction-ladder/execution": "workspace:*",
+    "@prediction-ladder/i18n": "workspace:*",
+    "@prediction-ladder/market-data": "workspace:*",
     "@tauri-apps/api": "2.6.0",
     "react": "19.1.0",
     "react-dom": "19.1.0"

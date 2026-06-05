@@ -28,6 +28,10 @@ export type RiskClass = "C0" | "C1" | "C2" | "C3";
 export type RiskActionClass = "risk_increasing" | "risk_reducing" | "read_only";
 export type DecimalString = string;
 export type CurrencyCode = "USD" | "USDC" | string;
+export type DataFreshness = "fresh" | "stale" | "disconnected" | "invalid";
+export type ConnectionMode = "snapshot" | "streaming" | "polling_fallback";
+export type MarketStatus = "open" | "closed" | "resolved" | "archived" | "inactive" | "unknown";
+export type OutcomeStatus = "tradable" | "closed" | "resolved" | "unknown";
 
 export type DecimalValidationError = {
   reason: "invalid_decimal_string";
@@ -143,6 +147,21 @@ export function compareDecimalStrings(
   return 0;
 }
 
+export function isPriceAlignedToTickSize(
+  price: DecimalString,
+  tickSize: DecimalString,
+): boolean {
+  if (!validatePositiveDecimalString(price).ok) {
+    return false;
+  }
+
+  if (!validatePositiveDecimalString(tickSize).ok) {
+    return false;
+  }
+
+  return parseValidDecimalString(price).mod(parseValidDecimalString(tickSize)).isZero();
+}
+
 function parseDecimal(
   value: DecimalString,
 ): Result<Decimal, EconomicDecimalValidationError> {
@@ -175,16 +194,279 @@ export type MarketRef = {
   currency: CurrencyCode;
 };
 
-export type PriceLevel = {
+export type TradableMarketRef = Omit<MarketRef, "outcomeId"> & {
+  outcomeId: string;
+  tickSize: DecimalString;
+  marketStatus: "open";
+  freshness: "fresh";
+  providerMetadata?: Record<string, unknown>;
+};
+
+export type TradableMarketRefValidationError = {
+  reason:
+    | "outcome_required"
+    | "invalid_tick_size"
+    | "market_not_open"
+    | "data_not_fresh";
+};
+
+export function createTradableMarketRef(
+  input: MarketRef & {
+    tickSize?: DecimalString;
+    marketStatus: MarketStatus;
+    freshness: DataFreshness;
+    providerMetadata?: Record<string, unknown>;
+  },
+): Result<TradableMarketRef, TradableMarketRefValidationError> {
+  if (input.outcomeId === undefined || input.outcomeId.trim() === "") {
+    return { ok: false, error: { reason: "outcome_required" } };
+  }
+
+  if (
+    input.tickSize === undefined ||
+    !validatePositiveDecimalString(input.tickSize).ok
+  ) {
+    return { ok: false, error: { reason: "invalid_tick_size" } };
+  }
+
+  if (input.marketStatus !== "open") {
+    return { ok: false, error: { reason: "market_not_open" } };
+  }
+
+  if (input.freshness !== "fresh") {
+    return { ok: false, error: { reason: "data_not_fresh" } };
+  }
+
+  return {
+    ok: true,
+    value: {
+      providerId: input.providerId,
+      marketId: input.marketId,
+      outcomeId: input.outcomeId,
+      currency: input.currency,
+      tickSize: normalizeDecimalString(input.tickSize),
+      marketStatus: "open",
+      freshness: "fresh",
+      ...(input.providerMetadata !== undefined
+        ? { providerMetadata: input.providerMetadata }
+        : {}),
+    },
+  };
+}
+
+export type NormalizedOutcome = {
+  providerId: ProviderId;
+  marketId: string;
+  outcomeId: string;
+  label: string;
+  status: OutcomeStatus;
+  providerMetadata?: Record<string, unknown>;
+};
+
+export type OrderBookLevel = {
   price: DecimalString;
   size: DecimalString;
 };
 
+export type PriceLevel = OrderBookLevel;
+
 export type OrderBookSnapshot = {
   marketRef: MarketRef;
   capturedAt: string;
-  bids: PriceLevel[];
-  asks: PriceLevel[];
+  bids: OrderBookLevel[];
+  asks: OrderBookLevel[];
+};
+
+export type NormalizedOrderBookSnapshot = OrderBookSnapshot & {
+  marketRef: TradableMarketRef;
+  tickSize: DecimalString;
+  minOrderSize?: DecimalString;
+  freshness: DataFreshness;
+  connectionMode: ConnectionMode;
+  providerMetadata?: Record<string, unknown>;
+};
+
+export type OrderBookNormalizationError = {
+  reason: "invalid_price" | "invalid_size";
+  level: OrderBookLevel;
+};
+
+export function normalizeOrderBookLevels(input: {
+  bids: OrderBookLevel[];
+  asks: OrderBookLevel[];
+}): Result<
+  { bids: OrderBookLevel[]; asks: OrderBookLevel[] },
+  OrderBookNormalizationError
+> {
+  const bids = normalizeOrderBookSide(input.bids, "bids");
+
+  if (!bids.ok) {
+    return bids;
+  }
+
+  const asks = normalizeOrderBookSide(input.asks, "asks");
+
+  if (!asks.ok) {
+    return asks;
+  }
+
+  return { ok: true, value: { bids: bids.value, asks: asks.value } };
+}
+
+function normalizeOrderBookSide(
+  levels: OrderBookLevel[],
+  side: "bids" | "asks",
+): Result<OrderBookLevel[], OrderBookNormalizationError> {
+  const normalizedLevels: OrderBookLevel[] = [];
+
+  for (const level of levels) {
+    if (!validatePositiveDecimalString(level.price).ok) {
+      return { ok: false, error: { reason: "invalid_price", level } };
+    }
+
+    if (!validatePositiveDecimalString(level.size).ok) {
+      return { ok: false, error: { reason: "invalid_size", level } };
+    }
+
+    normalizedLevels.push({
+      price: normalizeDecimalString(level.price),
+      size: normalizeDecimalString(level.size),
+    });
+  }
+
+  return {
+    ok: true,
+    value: normalizedLevels.sort((left, right) =>
+      side === "bids"
+        ? compareDecimalStrings(right.price, left.price)
+        : compareDecimalStrings(left.price, right.price),
+    ),
+  };
+}
+
+export function isFreshData(freshness: DataFreshness): boolean {
+  return freshness === "fresh";
+}
+
+export function isTradableMarketRef(
+  marketRef: MarketRef,
+): marketRef is TradableMarketRef {
+  const candidate = marketRef as MarketRef & {
+    tickSize?: DecimalString;
+    marketStatus?: MarketStatus;
+    freshness?: DataFreshness;
+    providerMetadata?: Record<string, unknown>;
+  };
+
+  if (candidate.marketStatus === undefined || candidate.freshness === undefined) {
+    return false;
+  }
+
+  return createTradableMarketRef({
+    providerId: candidate.providerId,
+    marketId: candidate.marketId,
+    ...(candidate.outcomeId !== undefined ? { outcomeId: candidate.outcomeId } : {}),
+    currency: candidate.currency,
+    ...(candidate.tickSize !== undefined ? { tickSize: candidate.tickSize } : {}),
+    marketStatus: candidate.marketStatus,
+    freshness: candidate.freshness,
+    ...(candidate.providerMetadata !== undefined
+      ? { providerMetadata: candidate.providerMetadata }
+      : {}),
+  }).ok;
+}
+
+export type QuantityValue =
+  | {
+      amount: DecimalString;
+    }
+  | {
+      status: "unknown" | "not_applicable";
+      reason: string;
+    };
+
+export type SettlementStatus =
+  | "unsettled"
+  | "pending"
+  | "settled"
+  | "voided"
+  | "unknown";
+
+export type NormalizedSettlement = {
+  status: SettlementStatus;
+  settledAt?: string;
+  proceeds?: MetricValue;
+  reason?: string;
+  providerMetadata?: Record<string, unknown>;
+};
+
+export type NormalizedBalance = {
+  providerId: ProviderId;
+  currency: CurrencyCode;
+  available: MetricValue;
+  total: MetricValue;
+  capturedAt: string;
+  providerMetadata?: Record<string, unknown>;
+};
+
+export type NormalizedPosition = {
+  providerId: ProviderId;
+  marketId: string;
+  outcomeId: string;
+  quantity: QuantityValue;
+  exposure: MetricValue;
+  settlement: NormalizedSettlement;
+  providerMetadata?: Record<string, unknown>;
+};
+
+export type NormalizedFee = {
+  providerId: ProviderId;
+  type: "platform" | "product" | "network" | "settlement" | "unknown";
+  amount: MetricValue;
+  marketId?: string;
+  orderId?: string;
+  description?: string;
+  providerMetadata?: Record<string, unknown>;
+};
+
+export type NormalizedOrderState =
+  | "pending"
+  | "open"
+  | "partially_filled"
+  | "filled"
+  | "cancelled"
+  | "rejected"
+  | "expired"
+  | "unknown";
+
+export type NormalizedOrder = {
+  id: string;
+  providerId: ProviderId;
+  marketRef: TradableMarketRef;
+  side: OrderSide;
+  type: OrderType;
+  timeInForce: TimeInForce;
+  state: NormalizedOrderState;
+  price: DecimalString;
+  originalQuantity: DecimalString;
+  filledQuantity: DecimalString;
+  remainingQuantity: DecimalString;
+  createdAt: string;
+  updatedAt?: string;
+  fees: NormalizedFee[];
+  providerMetadata?: Record<string, unknown>;
+};
+
+export type NormalizedFill = {
+  id: string;
+  providerId: ProviderId;
+  orderId: string;
+  marketRef: TradableMarketRef;
+  price: DecimalString;
+  quantity: DecimalString;
+  fee?: MetricValue;
+  filledAt: string;
+  providerMetadata?: Record<string, unknown>;
 };
 
 export type LadderRow = {
@@ -573,6 +855,10 @@ export type C1ApprovalStatus = "approved" | "missing";
 export type PositionStatus = "available" | "unknown";
 
 export type OrderRejectionReason =
+  | "market_not_selected"
+  | "order_book_not_fresh"
+  | "price_not_aligned_to_tick"
+  | "stake_not_configured"
   | "execution_disabled"
   | "kill_switch_active_for_risk_increasing_action"
   | "legal_gate_not_approved"
@@ -606,6 +892,9 @@ export type OrderSafetyPolicyInput = {
   actionClass: RiskActionClass;
   submissionRoute: SubmissionRoute;
   orderIntent?: OrderIntent | undefined;
+  selectedMarket: TradableMarketRef | null;
+  orderBookFreshness: DataFreshness;
+  stakeConfigured: boolean;
   legalGateStatus: GateApprovalStatus;
   geoGateStatus: GeoGateStatus;
   credentialStatus: CredentialStatus;
@@ -675,6 +964,18 @@ export function validateOrderSafety(
 
   if (input.executionMode === "disabled") {
     reasons.push("execution_disabled");
+  }
+
+  if (input.selectedMarket === null) {
+    reasons.push("market_not_selected");
+  }
+
+  if (input.orderBookFreshness !== "fresh") {
+    reasons.push("order_book_not_fresh");
+  }
+
+  if (!input.stakeConfigured) {
+    reasons.push("stake_not_configured");
   }
 
   if (input.killSwitchActive) {
@@ -796,6 +1097,13 @@ function pushOrderLimitReasons(
   reasons: OrderRejectionReason[],
 ): void {
   if (
+    input.selectedMarket !== null &&
+    !isPriceAlignedToTickSize(orderIntent.price, input.selectedMarket.tickSize)
+  ) {
+    reasons.push("price_not_aligned_to_tick");
+  }
+
+  if (
     validatePositiveDecimalString(orderIntent.stakeAmount.amount).ok &&
     validatePositiveDecimalString(input.maxStakePerOrder).ok &&
     compareDecimalStrings(orderIntent.stakeAmount.amount, input.maxStakePerOrder) > 0
@@ -891,12 +1199,20 @@ export type AuditEvent = {
     | "geo_gate_checked"
     | "credentials_status_checked"
     | "order_intent_created"
+    | "intent_created"
     | "risk_validation_result"
+    | "validation_passed"
+    | "validation_failed"
     | "live_acknowledgement_confirmed"
     | "order_submitted"
+    | "paper_order_created"
+    | "dry_run_checked"
     | "order_rejected"
+    | "rejected"
     | "order_cancelled"
     | "kill_switch_activated"
+    | "kill_switch_blocked"
+    | "mode_gate_status"
     | "error_occurred";
   executionMode: ExecutionMode;
   marketId?: string;

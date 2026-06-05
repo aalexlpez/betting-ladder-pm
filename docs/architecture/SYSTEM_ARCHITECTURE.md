@@ -26,8 +26,8 @@ User action
 ```ts
 interface MarketDataAdapter {
   providerId: ProviderId;
-  getOrderBook(marketRef: MarketRef): Promise<OrderBookSnapshot>;
-  subscribeOrderBook?(marketRef: MarketRef, onEvent: (event: MarketDataEvent) => void): Unsubscribe;
+  getOrderBook(marketRef: TradableMarketRef): Promise<MarketDataResult<NormalizedOrderBookSnapshot>>;
+  subscribeOrderBook?(marketRef: TradableMarketRef, onEvent: (event: MarketDataEvent) => void): Unsubscribe;
 }
 
 interface ExecutionAdapter {

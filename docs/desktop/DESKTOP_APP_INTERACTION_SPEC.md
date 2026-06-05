@@ -6,7 +6,7 @@
 Open app
   -> select/search provider and market
   -> inspect ladder
-  -> choose stake
+  -> choose preset or manual stake
   -> hover/click a ladder cell
   -> create OrderIntent
   -> risk guard validates
@@ -46,6 +46,11 @@ Open app
 ## Ladder click behavior
 
 React components must not submit live orders directly.
+
+Current implementation note, 2026-06-04: ladder Back/Lay cells may render as
+direct price interaction targets before Goal 05, but they must remain disabled
+and must not create order intents until risk validation and audit logging are
+implemented.
 
 Required sequence:
 
@@ -102,7 +107,7 @@ Settings MVP:
 
 - execution mode;
 - live acknowledgement;
-- max stake;
+- selected preset/manual stake and max stake;
 - max exposure;
 - global/provider/market metrics status;
 - one-click preference;

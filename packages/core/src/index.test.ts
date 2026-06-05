@@ -5,18 +5,28 @@ import {
   buildLadderRows,
   createCoreBootstrapStatus,
   createOrderIntentFromLadderClick,
+  createTradableMarketRef,
   decimalAdd,
   decimalDivide,
   decimalMultiply,
+  isPriceAlignedToTickSize,
+  isTradableMarketRef,
+  normalizeOrderBookLevels,
   normalizeDecimalString,
   type FinancialMetrics,
   type MarketRef,
   type MetricValue,
+  type NormalizedBalance,
+  type NormalizedFill,
+  type NormalizedOrder,
+  type NormalizedOrderBookSnapshot,
+  type NormalizedPosition,
   type OrderIntent,
   type OrderRejectionReason,
   type OrderSafetyPolicyInput,
   PROVIDER_IDS,
   type Result,
+  type TradableMarketRef,
   validateDecimalString,
   validateNonNegativeDecimalString,
   validateOrderSafety,
@@ -28,6 +38,14 @@ const marketRef: MarketRef = {
   marketId: "pm-election-2026",
   outcomeId: "yes",
   currency: "USDC",
+};
+
+const tradableMarketRef: TradableMarketRef = {
+  ...marketRef,
+  outcomeId: "yes",
+  tickSize: "0.01",
+  marketStatus: "open",
+  freshness: "fresh",
 };
 
 function expectOk<T, E>(result: Result<T, E>): T {
@@ -86,7 +104,7 @@ function baseBuyIntent(overrides: Partial<OrderIntent> = {}): OrderIntent {
   return {
     id: "intent-1",
     providerId: "polymarket",
-    marketRef,
+    marketRef: tradableMarketRef,
     side: "BUY",
     type: "limit",
     timeInForce: "GTC",
@@ -108,6 +126,9 @@ function baseSafetyInput(
     actionClass: "risk_increasing",
     submissionRoute: "one_click",
     orderIntent: baseBuyIntent(),
+    selectedMarket: tradableMarketRef,
+    orderBookFreshness: "fresh",
+    stakeConfigured: true,
     legalGateStatus: "approved",
     geoGateStatus: "approved",
     credentialStatus: "ready",
@@ -231,6 +252,212 @@ describe("order book ladder rows", () => {
   });
 });
 
+describe("normalized multi-venue contracts", () => {
+  it("requires a tradable market ref before a ladder can become executable", () => {
+    expect(
+      createTradableMarketRef({
+        providerId: "polymarket",
+        marketId: "pm-election-2026",
+        currency: "USDC",
+        tickSize: "0.01",
+        marketStatus: "open",
+        freshness: "fresh",
+      }),
+    ).toEqual({ ok: false, error: { reason: "outcome_required" } });
+
+    expect(
+      createTradableMarketRef({
+        providerId: "kalshi",
+        marketId: "KX-FED-2026",
+        outcomeId: "yes",
+        currency: "USD",
+        tickSize: "0",
+        marketStatus: "open",
+        freshness: "fresh",
+      }),
+    ).toEqual({ ok: false, error: { reason: "invalid_tick_size" } });
+
+    expect(
+      createTradableMarketRef({
+        providerId: "kalshi",
+        marketId: "KX-FED-2026",
+        outcomeId: "yes",
+        currency: "USD",
+        tickSize: "0.01",
+        marketStatus: "open",
+        freshness: "stale",
+      }),
+    ).toEqual({ ok: false, error: { reason: "data_not_fresh" } });
+
+    expectOk(
+      createTradableMarketRef({
+        providerId: "kalshi",
+        marketId: "KX-FED-2026",
+        outcomeId: "yes",
+        currency: "USD",
+        tickSize: "0.01",
+        marketStatus: "open",
+        freshness: "fresh",
+      }),
+    );
+  });
+
+  it("uses the full tradable-market validation rules in the type guard", () => {
+    const validRef = expectOk(
+      createTradableMarketRef({
+        providerId: "polymarket",
+        marketId: "pm-election-2026",
+        outcomeId: "pm-token-yes",
+        currency: "USDC",
+        tickSize: "0.01",
+        marketStatus: "open",
+        freshness: "fresh",
+      }),
+    );
+    const staleRef = {
+      providerId: "polymarket",
+      marketId: "pm-election-2026",
+      outcomeId: "pm-token-yes",
+      currency: "USDC",
+      tickSize: "0.01",
+      marketStatus: "open",
+      freshness: "stale",
+    } as MarketRef;
+
+    expect(isTradableMarketRef(validRef)).toBe(true);
+    expect(isTradableMarketRef(staleRef)).toBe(false);
+  });
+
+  it("normalizes Polymarket and Kalshi shaped books into the same ladder model", () => {
+    const polymarketRef = expectOk(
+      createTradableMarketRef({
+        providerId: "polymarket",
+        marketId: "pm-election-2026",
+        outcomeId: "pm-token-yes",
+        currency: "USDC",
+        tickSize: "0.01",
+        marketStatus: "open",
+        freshness: "fresh",
+        providerMetadata: { conditionId: "condition-1", negRisk: false },
+      }),
+    );
+    const kalshiRef = expectOk(
+      createTradableMarketRef({
+        providerId: "kalshi",
+        marketId: "KX-FED-2026",
+        outcomeId: "yes",
+        currency: "USD",
+        tickSize: "0.01",
+        marketStatus: "open",
+        freshness: "fresh",
+        providerMetadata: { marketTicker: "KX-FED-2026", selectedSide: "yes" },
+      }),
+    );
+    const normalizedLevels = expectOk(
+      normalizeOrderBookLevels({
+        bids: [
+          { price: "0.49", size: "7.00" },
+          { price: "0.50", size: "12.00" },
+        ],
+        asks: [
+          { price: "0.53", size: "8.00" },
+          { price: "0.52", size: "5.00" },
+        ],
+      }),
+    );
+    const polymarketBook: NormalizedOrderBookSnapshot = {
+      marketRef: polymarketRef,
+      capturedAt: "2026-06-03T10:00:00.000Z",
+      bids: normalizedLevels.bids,
+      asks: normalizedLevels.asks,
+      tickSize: polymarketRef.tickSize,
+      freshness: "fresh",
+      connectionMode: "snapshot",
+      providerMetadata: { sourceShape: "polymarket_clob" },
+    };
+    const kalshiBook: NormalizedOrderBookSnapshot = {
+      ...polymarketBook,
+      marketRef: kalshiRef,
+      providerMetadata: { sourceShape: "kalshi_yes_no_book" },
+    };
+
+    expect(normalizedLevels.bids.map((level) => level.price)).toEqual([
+      "0.5",
+      "0.49",
+    ]);
+    expect(normalizedLevels.asks.map((level) => level.price)).toEqual([
+      "0.52",
+      "0.53",
+    ]);
+    expect(buildLadderRows(polymarketBook)).toEqual(buildLadderRows(kalshiBook));
+  });
+
+  it("represents unknown account state without inventing balances or positions", () => {
+    const marketRef = expectOk(
+      createTradableMarketRef({
+        providerId: "kalshi",
+        marketId: "KX-FED-2026",
+        outcomeId: "yes",
+        currency: "USD",
+        tickSize: "0.01",
+        marketStatus: "open",
+        freshness: "fresh",
+      }),
+    );
+    const balance: NormalizedBalance = {
+      providerId: "kalshi",
+      currency: "USD",
+      available: { status: "unknown", reason: "credentials required" },
+      total: { status: "unknown", reason: "credentials required" },
+      capturedAt: "2026-06-03T10:00:00.000Z",
+    };
+    const position: NormalizedPosition = {
+      providerId: "kalshi",
+      marketId: marketRef.marketId,
+      outcomeId: marketRef.outcomeId,
+      quantity: { status: "unknown", reason: "portfolio credentials required" },
+      exposure: { status: "unknown", reason: "portfolio credentials required" },
+      settlement: { status: "unknown", reason: "settlement status unavailable" },
+    };
+    const openOrder: NormalizedOrder = {
+      id: "order-1",
+      providerId: "kalshi",
+      marketRef,
+      side: "BUY",
+      type: "limit",
+      timeInForce: "GTC",
+      state: "unknown",
+      price: "0.5",
+      originalQuantity: "10",
+      filledQuantity: "0",
+      remainingQuantity: "10",
+      createdAt: "2026-06-03T10:00:00.000Z",
+      fees: [],
+    };
+    const fill: NormalizedFill = {
+      id: "fill-1",
+      providerId: "kalshi",
+      orderId: openOrder.id,
+      marketRef,
+      price: "0.5",
+      quantity: "0",
+      fee: { status: "unknown", reason: "fee endpoint credentials required" },
+      filledAt: "2026-06-03T10:00:00.000Z",
+    };
+
+    expect(balance.available).toEqual({
+      status: "unknown",
+      reason: "credentials required",
+    });
+    expect(position.settlement.status).toBe("unknown");
+    expect(openOrder.state).toBe("unknown");
+    expect(fill.fee).toEqual({
+      status: "unknown",
+      reason: "fee endpoint credentials required",
+    });
+  });
+});
+
 describe("financial metrics aggregation", () => {
   it("aggregates metrics by global, provider, and market without crossing currencies", () => {
     const snapshot = aggregateFinancialMetrics({
@@ -322,6 +549,13 @@ describe("order intent and exposure", () => {
     expect(intent.marketable).toBe(false);
   });
 
+  it("checks price alignment against venue tick size without native floats", () => {
+    expect(isPriceAlignedToTickSize("0.50", "0.01")).toBe(true);
+    expect(isPriceAlignedToTickSize("0.505", "0.01")).toBe(false);
+    expect(isPriceAlignedToTickSize("0.3", "0.05")).toBe(true);
+    expect(isPriceAlignedToTickSize("0.31", "0.05")).toBe(false);
+  });
+
   it.each([
     { name: "zero price", price: "0", stake: "5", reason: "invalid_price" },
     { name: "negative price", price: "-0.01", stake: "5", reason: "invalid_price" },
@@ -409,6 +643,28 @@ describe("order safety policy", () => {
       name: "execution disabled",
       input: baseSafetyInput({ executionMode: "disabled" }),
       reason: "execution_disabled",
+    },
+    {
+      name: "market not selected",
+      input: baseSafetyInput({ selectedMarket: null }),
+      reason: "market_not_selected",
+    },
+    {
+      name: "order book not fresh",
+      input: baseSafetyInput({ orderBookFreshness: "stale" }),
+      reason: "order_book_not_fresh",
+    },
+    {
+      name: "price not aligned to tick size",
+      input: baseSafetyInput({
+        orderIntent: baseBuyIntent({ price: "0.505" }),
+      }),
+      reason: "price_not_aligned_to_tick",
+    },
+    {
+      name: "stake not configured",
+      input: baseSafetyInput({ stakeConfigured: false }),
+      reason: "stake_not_configured",
     },
     {
       name: "one-click not armed",

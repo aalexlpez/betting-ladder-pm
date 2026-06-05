@@ -1,17 +1,18 @@
 import { createUiBootstrapStatus } from "@prediction-ladder/ui";
 
+export type LandingDownloadStateKey = "installer_pending_bootstrap";
+export type LandingTrustNoteKey = "desktopDistribution" | "noCustody" | "installerPending";
+
 export const landingBootstrapConfig = {
-  productName: "Prediction Ladder",
-  surface: "static landing",
   tradingSurface: false,
-  downloadState: "installer pending bootstrap",
+  downloadState: "installer_pending_bootstrap" satisfies LandingDownloadStateKey,
   ui: createUiBootstrapStatus(),
 } as const;
 
-export function getLandingTrustNotes(): string[] {
+export function getLandingTrustNoteKeys(): LandingTrustNoteKey[] {
   return [
-    "Desktop-first product distribution surface",
-    "No deposits, custody, private keys, or trading execution in landing code",
-    "Installer link remains pending until Tauri packaging succeeds",
+    "desktopDistribution",
+    "noCustody",
+    "installerPending",
   ];
 }

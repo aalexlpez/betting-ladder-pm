@@ -17,6 +17,8 @@ out/
 **/.turbo/
 coverage/
 **/coverage/
+tmp/
+**/tmp/
 
 # Tauri, Rust, and packaged desktop artifacts
 target/

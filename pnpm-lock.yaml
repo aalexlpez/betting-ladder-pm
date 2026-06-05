@@ -62,6 +62,15 @@ importers:
       '@prediction-ladder/core':
         specifier: workspace:*
         version: link:../../packages/core
+      '@prediction-ladder/execution':
+        specifier: workspace:*
+        version: link:../../packages/execution
+      '@prediction-ladder/i18n':
+        specifier: workspace:*
+        version: link:../../packages/i18n
+      '@prediction-ladder/market-data':
+        specifier: workspace:*
+        version: link:../../packages/market-data
       '@tauri-apps/api':
         specifier: 2.6.0
         version: 2.6.0
@@ -84,6 +93,9 @@ importers:
 
   apps/landing:
     dependencies:
+      '@prediction-ladder/i18n':
+        specifier: workspace:*
+        version: link:../../packages/i18n
       '@prediction-ladder/ui':
         specifier: workspace:*
         version: link:../../packages/ui
@@ -108,9 +120,19 @@ importers:
         specifier: 10.6.0
         version: 10.6.0
 
-  packages/execution: {}
+  packages/execution:
+    dependencies:
+      '@prediction-ladder/core':
+        specifier: workspace:*
+        version: link:../core
 
-  packages/market-data: {}
+  packages/i18n: {}
+
+  packages/market-data:
+    dependencies:
+      '@prediction-ladder/core':
+        specifier: workspace:*
+        version: link:../core
 
   packages/ui: {}
 
@@ -453,7 +475,6 @@ packages:
   '@rolldown/binding-win32-x64-msvc@1.0.0-rc.15':
     resolution: {integrity: sha512-3P2A8L+x75qavWLe/Dll3EYBJLQmtkJN8rfh+U/eR3MqMgL/h98PhYI+JFfXuDPgPeCB7iZAKiqii5vqOvnA0g==}
     engines: {node: ^20.19.0 || >=22.12.0}
-    cpu: [x64]
     os: [win32]
 
   '@rolldown/pluginutils@1.0.0-rc.15':

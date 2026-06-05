@@ -9,6 +9,9 @@ Support/reference doc - defer to `docs/ai/CONTEXT_INDEX.md` for authority routin
 - [ ] Windows installer/distribution artifact exists, or a concrete packaging blocker is documented.
 - [ ] Polymarket read-only order-book data is integrated from real provider endpoints.
 - [ ] Kalshi read-only order-book data is integrated from real provider endpoints, or a concrete official provider/API/access blocker is documented.
+- [ ] Official provider SDKs are used where available for the chosen runtime, or official OpenAPI/AsyncAPI/direct documented clients are used with the reason documented.
+- [ ] WebSocket-first market-data streaming is integrated for each provider where official access allows it, or a concrete SDK/API/credential blocker is documented.
+- [ ] REST snapshots are labelled as bootstrap/recovery/fallback rather than the final fresh-data runtime when WebSocket is available.
 - [ ] Fixture/mock data is used only for tests and is not presented as product integration.
 - [ ] Real live demo target: one very small low-risk BUY GTC limit order placed and cancelled only if all gates are approved.
 - [ ] Real live execution is disabled if legal/geo/credential/risk gates are incomplete.
@@ -19,7 +22,7 @@ Support/reference doc - defer to `docs/ai/CONTEXT_INDEX.md` for authority routin
 - [ ] Desktop app starts on Windows or documented Windows-equivalent environment.
 - [ ] Installer/download flow from landing matches the actual build status.
 - [ ] Ladder displays real market data, not simulated provider liquidity.
-- [ ] Active provider is visible.
+- [ ] Unified market surface covers Polymarket and Kalshi; active provider is visible as compact venue metadata rather than a separate app mode.
 - [ ] Execution mode is visible.
 - [ ] One-click is off by default.
 - [ ] Stake limits visible.

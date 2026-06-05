@@ -8,9 +8,13 @@ Use these as copy-pasteable Codex goals. Keep each task small and reviewable. Do
 repo bootstrap
 -> provider-neutral domain/risk/financial metrics tests
 -> Tauri desktop shell wired to provider ports, with honest loading/empty/error states
+-> normalized multi-venue contracts for markets, books, account state, orders, fills, and settlement
 -> complete real Polymarket and Kalshi read-only market data adapters
+-> official provider runtime with SDK/source-of-truth clients and WebSocket-first streaming
+-> unified multi-venue desktop market experience
 -> paper/live-dry-run order intent and audit log
 -> gated real live place/cancel capability
+-> Windows installer/distribution artifact
 -> landing static
 -> release readiness
 ```
@@ -132,7 +136,7 @@ Implement:
 - typed command wrapper stubs with allowed commands only
 - React renderer with provider/market selector surfaces for both Polymarket and Kalshi
 - ladder workspace with no-market, loading, empty, stale, disconnected, and error states
-- command contracts ready to consume real provider snapshots from Goal 04
+- command contracts ready to consume normalized provider snapshots from Goal 04A/04
 - stake presets
 - execution mode banner
 - global/provider/market metrics panel with unknown/fake-free states
@@ -154,6 +158,49 @@ Acceptance criteria:
 - renderer has no filesystem/shell/provider SDK/secret access
 ```
 
+## Goal 04A - Normalized multi-venue contracts
+
+```txt
+/goal Implement the normalized multi-venue contracts before real provider API work.
+
+Read first:
+- docs/ai/CONTEXT_INDEX.md Routes B, C, and D
+- docs/specs/MARKET_DATA_SPEC.md
+- docs/specs/MARKET_SELECTION_SPEC.md
+- docs/specs/FINANCIAL_METRICS_SPEC.md
+- docs/specs/LIVE_EXECUTION_SPEC.md
+- docs/adr/ADR-0004-dual-venue-polymarket-kalshi.md
+
+Use skills:
+- context-router
+- monorepo-architect
+- domain-tdd-ladder
+- legal-live-safety-gate as a guardrail for account/live-adjacent contracts
+
+Implement:
+- keep canonical normalized shared types in packages/core
+- add TradableMarketRef separate from display-only MarketRef, requiring provider, market, outcome, currency, tick size, open status, and fresh data before executable/read-only ladder paths treat a market as tradable
+- normalize outcomes, order-book levels/snapshots, freshness, connection mode, balances, positions, fees, order states, fills, and settlement status
+- add packages/market-data provider ports for discovery, market resolution, order-book snapshots, optional subscriptions, explicit adapter errors, source metadata, and fixture-vs-live origin distinction
+- add packages/execution ports for execution and account state snapshots, without live submission implementation
+- add workspace dependencies from packages/market-data and packages/execution to packages/core only
+- keep desktop provider IDs sourced from core while leaving the UI disabled/fake-free
+
+Forbidden:
+- no external API calls
+- no credentials
+- no live order placement or cancellation
+- no provider SDKs
+- no pretending fixtures are live integration
+- no Polymarket/Kalshi payload shape in packages/core beyond normalized provider IDs and providerMetadata
+
+Acceptance criteria:
+- tests cover required tradable refs, decimal-safe order-book normalization, bid/ask ordering, freshness states, unknown account data, no fake balances/positions, fixture source distinction, and disabled execution ports
+- packages/market-data and packages/execution expose contracts_ready package statuses
+- pnpm --filter @prediction-ladder/core test, pnpm --filter @prediction-ladder/market-data test, pnpm --filter @prediction-ladder/execution test, pnpm typecheck, pnpm lint, pnpm test, and pnpm build pass or blockers are documented
+- docs/ai/context-handoff.md updated
+```
+
 ## Goal 04 - Complete provider read-only data
 
 ```txt
@@ -172,13 +219,13 @@ Use skills:
 
 Implement in packages/market-data:
 - begin with a short Kalshi official-access spike: validate current official read-only endpoints, auth requirements, market/order-book semantics, rate limits, and whether the first demo can load a real Kalshi snapshot without credentials
-- MarketDataAdapter provider port
+- use the Goal 04A MarketDiscoveryAdapter and MarketDataAdapter contracts
 - PolymarketMarketDataAdapter read-only path
 - KalshiMarketDataAdapter read-only path
 - configured fallback provider/market/outcome support using real provider identifiers only
 - order-book snapshot fetch for both providers
 - market list/search adapter for both providers, or a documented official-access blocker
-- WebSocket subscription interface where official endpoints support it; polling fallback otherwise
+- keep any subscription interface contract-only; official SDK/WebSocket runtime is deferred to Goal 04B
 - payload validation and normalization into core domain types
 - stale/reconnect state model
 
@@ -197,6 +244,106 @@ Acceptance criteria:
 - UI can consume normalized snapshot data
 - errors and stale states are explicit
 - trading is refused when provider/outcome/tick/status/freshness/account requirements are unknown
+```
+
+## Goal 04B - Official provider runtime and WebSocket streaming
+
+```txt
+/goal Implement the provider runtime that turns the Goal 04 read-only adapters into an end-to-end live market-data path using official SDKs or official source-of-truth specifications.
+
+Read first:
+- docs/ai/CONTEXT_INDEX.md Routes B, D, E, and F
+- docs/specs/MARKET_DATA_SPEC.md
+- docs/specs/MARKET_SELECTION_SPEC.md
+- docs/architecture/TAURI_SECURITY_AND_COMMAND_SPEC.md
+- docs/adr/ADR-0004-dual-venue-polymarket-kalshi.md
+
+Use skills:
+- context-router
+- monorepo-architect
+- tauri-desktop-shell
+- legal-live-safety-gate
+- polymarket-live-adapter for Polymarket-specific work
+
+Implement:
+- validate current official SDK/client availability before adding dependencies
+- use official provider SDKs when they exist for the chosen runtime
+- where no official SDK exists for the chosen runtime, use the provider's official OpenAPI/AsyncAPI specification or direct documented API client and document why no official SDK was used
+- keep all provider clients, WebSocket connections, credentials, auth signatures, and reconnect state outside the React renderer
+- add Tauri-side command/runtime boundary for `market_search`, `market_get_order_book`, and `market_subscribe`
+- make WebSocket streaming the primary fresh market-data path for providers that support it
+- keep REST snapshot reads only for discovery, initial bootstrap, recovery, and documented fallback
+- implement provider-specific WebSocket subscription adapters for Polymarket and Kalshi, or document a concrete official SDK/API/access blocker
+- model connected, connecting, reconnecting, stale, disconnected, invalid, blocked, and credentials-required states explicitly
+- preserve normalized `TradableMarketRef`, `NormalizedOutcome`, `NormalizedOrderBookSnapshot`, `OrderBookLevel`, `DataFreshness`, and `ConnectionMode`
+- add deterministic tests for stream messages, out-of-order updates, reconnect, stale timeout, malformed messages, auth-required WebSocket handshake, and REST fallback
+
+Provider notes:
+- Polymarket official docs currently list TypeScript, Python, and Rust CLOB clients, and a market WebSocket channel that does not require authentication.
+- Kalshi official docs currently list Python and TypeScript SDKs, recommend OpenAPI/AsyncAPI as source of truth for active traders, and require authentication during WebSocket connection setup even for public market-data channels.
+- If a Kalshi Rust SDK is required but not officially available, do not substitute an unofficial SDK and call it official; use an official spec-generated/direct client or document the blocker.
+
+Forbidden:
+- no provider SDKs or auth headers in the renderer
+- no private keys, seed phrases, API secrets, or signed payloads in renderer memory
+- no live order submission
+- no geoblock or auth bypass
+- no pretending REST polling is the final streaming integration if official WebSocket access is available
+- no treating credential-required Kalshi WebSocket failure as provider success
+
+Acceptance criteria:
+- desktop can load/search/select a real provider market through the Tauri-side provider runtime
+- a fresh ladder can be driven by WebSocket messages for each provider, or a named official SDK/API/access blocker is shown
+- REST snapshots remain available as initial/recovery/fallback path and are labelled as such
+- renderer receives only normalized, secret-free market-data state
+- freshness/reconnect behavior is tested
+- pnpm --filter @prediction-ladder/market-data test, pnpm --filter @prediction-ladder/desktop test, pnpm typecheck, pnpm lint, pnpm test, and pnpm build pass or blockers are documented
+- docs/ai/context-handoff.md updated
+```
+
+## Goal 04C - Unified multi-venue desktop market experience
+
+```txt
+/goal Replace the provider-switching desktop market surface with a unified multi-venue market experience.
+
+Read first:
+- docs/ai/CONTEXT_INDEX.md Routes D, E, and J
+- docs/specs/MARKET_DATA_SPEC.md
+- docs/specs/MARKET_SELECTION_SPEC.md
+- docs/specs/DESKTOP_APP_SPEC.md
+- docs/desktop/DESKTOP_APP_LAYOUT_SPEC.md
+- docs/desktop/DESKTOP_APP_INTERACTION_SPEC.md
+- docs/architecture/TAURI_SECURITY_AND_COMMAND_SPEC.md
+
+Use skills:
+- context-router
+- desktop-terminal-design
+- tauri-desktop-shell
+- legal-live-safety-gate as a guardrail for live/account status visibility
+
+Implement:
+- unified market search/list across Polymarket and Kalshi instead of a provider-first switch as the primary workflow
+- provider appears as a compact venue badge/icon and metadata, not as a separate product mode
+- one ladder workspace consumes normalized market/outcome/book state regardless of venue
+- provider-specific blockers remain visible only where they affect availability, credentials, legal gates, account metrics, order semantics, or execution safety
+- sorting/filtering may include provider, but the default experience should feel like one prediction-market ladder terminal
+- keep disconnected/stale/blocked/unavailable states explicit and fake-free
+- keep order submission disabled until Goal 05/06 paths are implemented
+
+Forbidden:
+- no hiding provider identity entirely when it affects legal, fees, currency, credentials, or execution risk
+- no fake unified liquidity across venues
+- no cross-venue order routing, aggregation, arbitrage, bots, copy trading, or AI signals
+- no live submission path
+- no provider SDK access from the renderer
+
+Acceptance criteria:
+- user can discover real markets from both providers from one market surface
+- selected market renders in one normalized ladder layout with only a venue badge/icon differentiating the source
+- provider switch is no longer the main mental model of the desktop workspace
+- state tests prove Polymarket and Kalshi snapshots render through the same ladder-facing view model
+- pnpm --filter @prediction-ladder/desktop test, pnpm typecheck, pnpm lint, pnpm test, and pnpm build pass or blockers are documented
+- docs/ai/context-handoff.md updated
 ```
 
 ## Goal 05 - Paper, live-dry-run, audit log

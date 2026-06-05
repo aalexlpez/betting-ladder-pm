@@ -49,6 +49,12 @@ type FinancialMetricsSnapshot = {
 };
 ```
 
+Goal 04A also defines normalized account-state contracts in `packages/core` for
+balances, positions, fees, orders, fills, and settlement status. Provider
+adapters may preserve venue-specific fields only in `providerMetadata`; the UI
+and risk guard consume the normalized shapes and must treat credential-required
+values as `unknown`.
+
 ## Display rules
 
 - Never show fake PnL, fake balance, fake exposure, or invented provider metrics.
@@ -81,8 +87,50 @@ Risk validation must use conservative values:
 - unknown open-order amount blocks live risk-increasing orders when it affects max exposure;
 - cancellation remains risk-reducing and should remain available if technically possible.
 
+Goal 06/07 implementation note: the desktop live gate model now renders a
+missing privileged account metrics source plus unknown available funds,
+provider exposure, and market exposure as exact live blockers
+(`account_metrics_source_missing`, `available_funds_unknown`,
+`provider_exposure_unknown`, `market_exposure_unknown`). The Tauri live submit
+command requires authenticated provider-owned account metrics readiness for the
+selected provider before any risk-increasing provider branch, so
+renderer-provided funds/exposure inputs alone can never authorize live
+submission. `ACCOUNT_METRICS_SOURCE=official_provider` remains only a
+controlled dev/smoke alias, not normal user setup.
+
+Goal 07 implementation note, 2026-06-04: desktop preflight can now
+render Tauri-returned account metric readiness and, when ready, available funds,
+open-order amount, provider exposure, and market exposure for the selected
+provider/market. Polymarket now has a Tauri-owned provider metrics runtime that
+authenticates through the local signer, reads CLOB USDC balance/allowance and
+open orders, reads wallet positions through the provider-owned data API, and
+computes conservative provider/market exposure without returning signer
+material, auth headers, signatures, signed payloads, full wallet identifiers, or
+raw provider payloads to React. Kalshi now has a Tauri-owned RSA-PSS signed
+portfolio metrics runtime that uses the local `.key` material only in the main
+process, signs documented Trade API portfolio requests, reads USD balance,
+resting orders, and market positions, then computes conservative open-order
+amount, position exposure, provider exposure, and market exposure without
+returning private keys, API Key IDs, auth headers, signatures, signed payloads,
+or raw provider payloads to React. Polymarket signer material and Kalshi key
+material are imported once from local source files into app-managed encrypted
+local credential storage; normal users should not keep editing file paths,
+`.local/account-metrics.local.json`, or environment switches to make metrics
+ready. `.local/account-metrics.local.json` and environment switches are
+dev/smoke fallbacks only and must not be the normal operator onboarding path.
+Missing/invalid credentials, provider credential
+rejection, provider rejection, network failure, malformed payloads, stale data,
+provider/market mismatch, missing market selection, and unconfigured live
+adapters remain exact live blockers.
+
 ## Acceptance criteria
 
 - UI can render global, provider, and market breakdowns.
 - Domain tests cover aggregation by provider, aggregation by market, unknown metric propagation, and no cross-currency aggregation.
 - Live order validation refuses risk-increasing actions when required financial metrics are unknown.
+- Normal users do not edit `.local/*.json` or env vars to make account metrics
+  appear ready; authenticated provider-owned metrics are required for product
+  live readiness.
+- Normal users complete the localized desktop legal approval modal for
+  legal/local approval; Tauri writes the non-committed approval state. Manual
+  `.local` files and environment switches remain dev/smoke fallbacks only.

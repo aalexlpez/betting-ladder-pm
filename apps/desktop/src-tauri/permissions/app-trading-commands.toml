@@ -1,0 +1,20 @@
+[[permission]]
+identifier = "app-trading-commands"
+description = "Allows the main trading window to call the app-owned secret-free Tauri command boundary. Commands still enforce provider, credential, legal, risk, audit, kill-switch, and live execution gates in Rust."
+commands.allow = [
+  "app_get_status",
+  "market_search",
+  "market_get_order_book",
+  "market_subscribe",
+  "live_gate_status",
+  "legal_approval_status",
+  "legal_approval_submit",
+  "provider_onboarding_status",
+  "provider_connect_account",
+  "provider_open_credential_reference",
+  "provider_import_polymarket_signer_from_clipboard",
+  "provider_apply_polymarket_account_candidate",
+  "live_preflight_status",
+  "order_submit_live",
+  "order_cancel",
+]

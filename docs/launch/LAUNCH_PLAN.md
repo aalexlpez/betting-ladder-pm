@@ -12,8 +12,9 @@ Timing and current phase are controlled by `docs/ai/context-handoff.md`.
 
 ```txt
 core risk/order semantics tests
-  -> real Polymarket and Kalshi read-only order books
-  -> desktop ladder with real provider data
+  -> real Polymarket and Kalshi REST read-only order books
+  -> official provider runtime with SDK/source-of-truth clients and WebSocket-first streaming
+  -> unified desktop ladder with real provider data
   -> paper/live-dry-run order intent
   -> audit log
   -> Windows installer/distribution artifact
@@ -28,8 +29,8 @@ Real live execution is an intended product capability and live smoke target, but
 1. Open landing page.
 2. Download or access the Windows installer/distribution artifact, or show a concrete packaging blocker.
 3. Open Windows desktop app or documented dev-mode equivalent if packaging is blocked.
-4. Select real Polymarket and Kalshi markets, or show a documented provider/API/access blocker for either venue.
-5. Display live/read-only ladder.
+4. Search/select real Polymarket and Kalshi markets from one unified market surface, or show a documented provider SDK/API/access blocker for either venue.
+5. Display live/read-only ladder from WebSocket-first provider data where official access allows it, or show the named SDK/API/credential blocker.
 6. Create order intent.
 7. Run risk/legal/geo/credential validation.
 8. Execute a real live place/cancel smoke test if all gates pass; otherwise execute live-dry-run/paper and show exact blocked gate.

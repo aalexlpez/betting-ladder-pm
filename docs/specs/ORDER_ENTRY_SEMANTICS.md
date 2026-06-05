@@ -2,6 +2,55 @@
 
 Status: implementation source of truth for MVP order intent and risk tests.
 
+Goal 05 implementation note, 2026-06-04: Back/Lay ladder cells now create a
+provider-neutral `OrderIntent` preview when a selected market has a fresh
+official normalized order book. The domain validates selected market, fresh
+book, tick-size price alignment, configured stake, stake/exposure caps, kill
+switch, one-click route, execution mode, account metric availability for
+live-style modes, and legal/geo/credential/live gates. One-click remains off by
+default, so ladder clicks create previews rather than immediate orders. Paper
+confirmation creates local paper order records only. Live dry-run performs
+live-style validation and audit logging without provider submission. Real live
+submission remains blocked and unimplemented.
+
+Goal 06 partial implementation note, 2026-06-04: the execution package now has
+provider-neutral live place/cancel contracts and a gated live adapter tested
+against mocked provider adapters. The desktop model exposes local approval,
+explicit acknowledgement, account metric, and provider-adapter readiness as
+exact live blockers. The Tauri live submit command validates only BUY/long,
+limit, GTC, non-marketable smoke-test intents before any provider branch; the
+Tauri command boundary now has a mocked provider-runtime seam proving place and
+cancel behavior only run after gates pass. The Tauri runtime has a Polymarket
+official SDK branch configured by default for the product path; it requires a
+numeric provider outcome/token id, app-managed local signer material,
+non-committed local approval, provider-owned account metrics readiness, and all
+other live gates before it can build a post-only BUY/limit/GTC request. Kalshi
+live remains blocked with `provider_live_adapter_not_configured`, and no real
+orders were submitted in that slice.
+
+Goal 06 audit correction, 2026-06-04: Tauri validates the live request with
+Decimal arithmetic before any provider branch. It rejects renderer quantity
+inflation when `price * quantity` exceeds the declared stake, calculates
+projected exposure from Tauri-owned account metrics instead of renderer
+payloads, and enforces the non-committed local approval max stake/exposure caps.
+The local account metrics bridge is non-committed and freshness-checked; it is
+a dev/smoke fallback only. Normal product readiness uses authenticated
+provider-owned account metrics.
+
+Goal 07 first-live-smoke follow-up, 2026-06-05: the desktop can now expose a
+Tauri-only live smoke action after a selected-provider BUY/non-marketable
+limit/GTC preview and all preflight gates pass. Polymarket live runtime is
+configured by default in Tauri and still requires app-managed signer material,
+provider-owned account metrics, and all gates before place/cancel. Kalshi live
+placement remains blocked with `provider_live_adapter_not_configured`.
+
+Goal 07 manual-stake UX follow-up, 2026-06-05: the desktop stake deck supports
+both preset buttons and manual provider-currency stake entry. Manual entry feeds
+the same `stakeAmount` field into the existing order-intent and risk guard path:
+empty input rejects with `stake_not_configured`, invalid decimals reject with
+`invalid_stake`, and values above the configured/legal cap reject with
+`stake_exceeds_limit`.
+
 ## Scope decisions
 
 | Decision | Reason | Alternatives considered | Rejected alternatives | Source / evidence |
@@ -131,6 +180,10 @@ If a technical outage prevents cancellation, the UI must show `cancel_unavailabl
 Domain tests must cover these exact refusal reasons before UI/live work depends on them:
 
 - `one_click_not_armed`;
+- `market_not_selected`;
+- `order_book_not_fresh`;
+- `price_not_aligned_to_tick`;
+- `stake_not_configured`;
 - `first_live_ack_missing`;
 - `kill_switch_active_for_risk_increasing_action`;
 - `stake_exceeds_limit`;
@@ -142,9 +195,9 @@ Domain tests must cover these exact refusal reasons before UI/live work depends 
 - `marketable_order_not_approved`;
 - `position_unknown`;
 - `c0_risk_detected`;
-- `c1_approval_missing`.
-
-
+- `c1_approval_missing`;
+- `audit_log_not_enabled`;
+- `order_intent_missing`;
 
 ## Rounding and precision acceptance rules
 

@@ -116,7 +116,7 @@ The app must not implement:
 
 Live risk-increasing execution may only be enabled if:
 
-1. `LEGAL_GATE_STATUS=APPROVED`;
+1. app-managed legal approval exists for the selected provider through the Tauri desktop legal onboarding flow, or controlled dev/smoke aliases are explicitly set;
 2. C0 risk review passes;
 3. C1 risk has business-owner sign-off or is marked not required;
 4. provider/venue and jurisdiction are approved;
@@ -124,12 +124,26 @@ Live risk-increasing execution may only be enabled if:
 6. geoblock check passes;
 7. credentials are local and not committed;
 8. local approval state exists outside committed repository files;
-9. max stake and max exposure are set;
-10. user explicitly arms live mode;
-11. audit log is enabled;
-12. market data is fresh and live-eligible.
+9. privileged account metrics source is ready for the selected provider and market;
+10. max stake and max exposure are set;
+11. user explicitly arms live mode;
+12. audit log is enabled;
+13. market data is fresh and live-eligible.
+
+Goal 07 legal onboarding follow-up, 2026-06-05: legal approval is now a localized desktop flow, not a manual JSON/env-var task for normal operators. After provider credentials are imported and ready, the provider onboarding flow opens the legal/local approval modal for that provider. The modal captures target jurisdiction, real operator identity, responsible approver, first-order stake cap, market exposure cap, C0/C1 declarations, no geoblock/VPN/fake-KYC/sanctions bypass declarations, no-custody posture, audit confirmation, and the BUY-only tiny limit/GTC/post-only/non-marketable live-order policy with manual cancellation available. For usability the desktop UI presents one explicit acknowledgement over the full visible declaration set; Tauri still receives and validates every declaration before writing the local non-committed approval file and returning only secret-free status/reason codes. Completing this flow cannot bypass platform restrictions, KYC/AML, credentials, account metrics, fresh book, risk limits, kill switch, acknowledgement, non-marketable, audit, or provider-adapter gates.
 
 ## Live action policy
 
 - Risk-increasing actions are blocked by default and require all gates to pass.
 - Cancellation is risk-reducing and should remain available even when the kill switch is active, unless a platform or technical failure prevents cancellation.
+
+Goal 06 partial runtime note, 2026-06-04: the desktop/Tauri runtime can now
+report local approval, credential-source readiness, explicit acknowledgement,
+privileged account metrics readiness, and live order blockers through
+secret-free gate commands. This does not change the legal decision model: C0
+still blocks, C1 still requires human sign-off, and real provider execution
+remains blocked unless every runtime and human approval gate passes. Mocked
+provider-runtime tests prove place/cancel mapping after gates, and the
+Polymarket official SDK branch now exists behind app-managed local signer
+material, provider-owned account metrics, and all gates. Kalshi live remains
+blocked, and this must not be treated as legal or operational approval.

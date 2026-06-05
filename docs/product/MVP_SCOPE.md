@@ -18,9 +18,10 @@ Deliver a real, live-ready product slice, not a mockup. The product must be usab
 ### Market data
 
 - Provider-neutral market-data port with complete Polymarket and Kalshi read-only adapters.
-- Market selector or configured provider/market/token fallback using real provider identifiers only.
+- Unified market selector or configured provider/market/token fallback using real provider identifiers only.
 - Real order-book snapshot for both Polymarket and Kalshi, or a documented official API/access blocker that prevents one provider from being demo-ready.
-- Live updates where official endpoints support them, with polling fallback.
+- Official provider SDKs where available for the chosen runtime, or official OpenAPI/AsyncAPI/direct documented clients when no official SDK exists.
+- WebSocket-first live updates where official endpoints support them, with REST snapshot/polling only for discovery, bootstrap, recovery, or documented fallback.
 - Stale/reconnect/error states.
 
 ### Ladder
@@ -63,6 +64,7 @@ Deliver a real, live-ready product slice, not a mockup. The product must be usab
 - The same metrics grouped by selected market.
 - The same metrics grouped by provider: Polymarket and Kalshi.
 - When a metric is unavailable from a provider, the UI must show an explicit unavailable/unknown state rather than fabricating or hiding it.
+- Provider identity should appear as compact venue metadata in the unified terminal, not as the primary app mode, unless it affects legal, currency, credential, fee, account, order, or execution safety.
 
 ### Launch artifacts
 

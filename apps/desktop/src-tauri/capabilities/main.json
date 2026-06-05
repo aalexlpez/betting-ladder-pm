@@ -3,5 +3,5 @@
   "identifier": "main",
   "description": "Main trading window with no filesystem, shell, or provider SDK permissions.",
   "windows": ["main"],
-  "permissions": ["core:default"]
+  "permissions": ["core:default", "app-trading-commands"]
 }

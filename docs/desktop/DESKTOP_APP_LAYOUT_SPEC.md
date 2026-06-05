@@ -1,5 +1,14 @@
 # Desktop App Layout Specification
 
+## Ladder-first correction, 2026-06-04
+
+Traderline-style market discovery is useful as an access pattern, but the core
+desktop product is a Betfair-style betting ladder. The market rail exists to
+find and select provider-backed markets; the center workspace must remain the
+execution surface with a vertical price ladder, Back/Lay liquidity cells, stake
+presets plus manual stake entry near the ladder, visible one-click state, and blocked keyboard/order
+affordances until the order-intent and audit path exists.
+
 ## Target shell
 
 ```txt
@@ -7,7 +16,7 @@
 │ Top command bar: app · provider · market · connection · mode · gates · account │
 ├──────────────┬────────────────────────────────────────┬──────────────────────┤
 │ Market rail  │ Ladder workspace                       │ Risk / orders rail   │
-│ Search       │ Market header                          │ Stake presets        │
+│ Search       │ Market header                          │ Stake presets/input  │
 │ Watchlist    │ Bid size | Price | Ask size             │ One-click arm        │
 │ Filters      │ Best bid/ask, spread, own orders        │ Exposure / gates     │
 │              │ Hover trade preview                     │ Open orders / audit  │
@@ -36,7 +45,8 @@ Must show:
 MVP:
 
 - search input;
-- watchlist or mock market list;
+- unified provider-backed Polymarket/Kalshi market list;
+- direct all/venue filters and bounded infinite scroll/load more;
 - selected market state;
 - open/closed/unknown tag;
 - liquidity/volume hints when available.
@@ -46,7 +56,9 @@ MVP:
 MVP:
 
 - market header with best bid, best ask, spread, last trade;
-- ladder grid with bid size, price, ask size;
+- ladder control deck with stake presets, manual stake entry, one-click state, and keyboard/order-intent blockers;
+- ladder grid with Back liquidity, price, and Lay liquidity;
+- direct price-cell interaction targets that emit order intents only after Goal 05 wires risk/audit validation;
 - best bid/ask markers;
 - own order markers;
 - hover trade preview;
@@ -57,10 +69,7 @@ MVP:
 
 MVP:
 
-- stake presets;
-- manual stake input;
 - selected trade preview;
-- one-click control;
 - global, provider, and market PnL/available/open-order/exposure metrics;
 - max stake / max exposure;
 - legal gate;

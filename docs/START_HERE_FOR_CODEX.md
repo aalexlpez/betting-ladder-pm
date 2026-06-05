@@ -19,7 +19,7 @@ Build a real, live-ready Windows desktop product in a monorepo within the 40-hou
 
 - Desktop shell: Tauri + Vite + React + TypeScript.
 - Landing: Vite + React + TypeScript static site for distribution, trust, and beta/demo conversion; not a trading surface.
-- Venues: Polymarket and Kalshi are both required integrations; provider behavior lives in adapters behind venue-neutral ports.
+- Venues: Polymarket and Kalshi are both required integrations; provider behavior lives in adapters/runtime clients behind venue-neutral ports, with official SDKs or official source-of-truth API specs used where available.
 - Legal posture: live execution only after gates.
 - Paper mode: harness/fallback, not final product. The product target includes real live place/cancel capability; if gates cannot pass, the demo must show real data + live-dry-run/paper + exact gate status.
 - Screen recordings: not evaluated and not necessary; they must not consume implementation time.
@@ -31,11 +31,14 @@ Use `docs/ai/context-handoff.md` to decide which goal is current. The reusable g
 1. `Goal 01 - Repo bootstrap`.
 2. `Goal 02 - Domain core with tests`.
 3. `Goal 03 - Desktop shell with provider-ready states`.
-4. `Goal 04 - Complete provider read-only data`.
-5. `Goal 05 - Paper/live-dry-run/audit`.
-6. `Goal 06 - Gated live execution vertical slice`.
+4. `Goal 04A - Normalized multi-venue contracts`.
+5. `Goal 04 - Complete provider read-only data`.
+6. `Goal 04B - Official provider runtime and WebSocket streaming`.
+7. `Goal 04C - Unified multi-venue desktop market experience`.
+8. `Goal 05 - Paper/live-dry-run/audit`.
+9. `Goal 06 - Gated live execution vertical slice`.
 
-Do not jump to Polymarket SDK, live execution, landing polish, or desktop polish unless the handoff explicitly routes there.
+Do not jump to live execution, landing polish, or unrelated desktop polish unless the handoff explicitly routes there.
 
 ## Landing page work
 

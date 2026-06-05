@@ -47,7 +47,7 @@ Advanced or semi-advanced prediction-market trader who understands order books, 
 
 - Windows desktop app first, built with Tauri.
 - Landing page for product narrative and distribution.
-- Polymarket and Kalshi are both P0 integrations through shared domain ports and provider-specific adapters. Fixtures are allowed for tests, but not as a substitute for real provider integration in the product demo.
+- Polymarket and Kalshi are both P0 integrations through shared domain ports and provider-specific adapters/runtime clients. Official SDKs should be used where available for the chosen runtime; otherwise the implementation must use official OpenAPI/AsyncAPI/direct documented clients and document the reason. Fixtures are allowed for tests, but not as a substitute for real provider integration in the product demo.
 - No automation, no bots, no trading signals in MVP.
 - Live order placement/cancellation is a real approved-gates capability. It must be implemented and tested as far as gates allow; blocked gates must be explicit rather than bypassed.
 - Fair monetization: free pilot/read-only plus a provider-approved, disclosed fee or revenue-share hypothesis; subscription remains a fallback/private-team option. Billing and fees are disabled by default.
@@ -58,8 +58,8 @@ Default success:
 
 1. install/run Windows desktop app or documented dev-mode equivalent;
 2. download or access the Windows installer from the landing page, or document a concrete packaging blocker;
-3. select real Polymarket and Kalshi markets, or document a concrete official API/access blocker for either provider;
-4. see live/read-only ladder data;
+3. select real Polymarket and Kalshi markets from a unified market surface, or document a concrete official SDK/API/access blocker for either provider;
+4. see WebSocket-first live/read-only ladder data where official access allows it, with REST used only as bootstrap/recovery/fallback;
 5. set stake and risk limits;
 6. create an order intent;
 7. run legal/geo/credential/risk validation;

@@ -11,5 +11,8 @@
     "typecheck": "tsc --noEmit -p tsconfig.json",
     "lint": "eslint . --max-warnings=0",
     "test": "vitest run"
+  },
+  "dependencies": {
+    "@prediction-ladder/core": "workspace:*"
   }
 }

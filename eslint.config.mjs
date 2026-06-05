@@ -19,6 +19,8 @@ export default [
       "**/release/**",
       "coverage/**",
       "**/coverage/**",
+      "target/**",
+      "**/target/**",
       ".turbo/**",
       "**/.turbo/**",
       ".local/**",

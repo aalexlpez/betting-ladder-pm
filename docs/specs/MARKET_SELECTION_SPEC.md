@@ -7,24 +7,37 @@ Status: implementation source of truth for selecting real providers, markets, ou
 | Decision | Reason | Alternatives considered | Rejected alternatives | Source / evidence |
 |---|---|---|---|---|
 | Use provider-neutral market selection | Prevents Polymarket or Kalshi assumptions from leaking into core/domain code | Single-provider market picker | Domain coupled to one provider | Current product decision |
-| User must select provider, market, and outcome | Live orders target provider-specific instruments, not vague event names | Auto-select first outcome | Ambiguous live route | Provider order-book/execution models |
+| User must select a concrete provider-backed market and outcome | Live orders target provider-specific instruments, not vague event names | Auto-select first outcome | Ambiguous live route | Provider order-book/execution models |
+| Desktop market discovery should be unified across venues | The product should feel like one prediction-market ladder terminal, not a Polymarket/Kalshi mode switch | Provider-first switch as the primary workflow | Splits the product into venue silos and weakens the normalized-domain model | Current product decision after Goal 04 |
 | Reject closed/resolved/archived/unknown markets for trading | Prevents unusable live paths | Show everything and fail later | Runtime surprise during live smoke | Market safety policy |
 | Configured market fallback is allowed only with real provider identifiers | Keeps demo stable if search is incomplete without pretending fixture data is live | Search-only | Hard-coded domain logic or mock market data as product demo | 5-day / 40-hour launch-readiness constraint |
 
 ## Discovery path
 
-1. User selects or filters by provider: `polymarket` or `kalshi`.
-2. Search or load markets from the provider adapter.
-3. Display event/market title, outcomes, liquidity/volume if available, status, and provider-specific identifiers.
-4. User selects one market and one outcome/instrument.
-5. Adapter resolves normalized fields:
+1. User searches or browses one unified market surface across supported providers.
+2. Provider may be used as a direct filter, but it is not the primary product mode.
+3. Search or load paginated market pages from provider adapters through the normalized market-data runtime.
+4. Infinite-scroll or load-more UI may request more bounded pages, preserving provider-specific pagination tokens behind the Tauri/provider boundary.
+   Providers without a documented free-text market search endpoint may use
+   bounded cursor scans or exact identifier filters instead of pretending a
+   broader search API exists.
+5. Display event/market title, outcomes, liquidity/volume if available, status, and a compact provider badge/icon.
+6. User selects one provider-backed market and one outcome/instrument.
+7. Adapter resolves normalized fields:
    - `providerId`;
    - `marketId`;
    - `outcomeId`;
+   - `currency`;
    - selected outcome name;
    - `tickSize`;
+   - `freshness`;
    - market status flags;
    - provider metadata required for execution or account metrics.
+
+The resolved executable/read-only ladder target is `TradableMarketRef`, not a
+provider-specific Polymarket or Kalshi market object. `MarketRef` may remain
+display-only, but `TradableMarketRef` requires provider, market, outcome,
+currency, tick size, open status, and fresh data.
 
 ## Provider identifier mapping
 
@@ -52,14 +65,28 @@ Reject for live and live-dry-run trading if:
 
 The UI may still display read-only information for rejected markets if clearly marked read-only.
 
+## Unified multi-venue UI rule
+
+The desktop app should present one ladder terminal. Polymarket and Kalshi should
+appear as venue metadata, such as a compact badge/icon, not as separate app modes.
+Provider identity must still remain visible when it affects legal eligibility,
+currency, credential state, fees, account metrics, order semantics, or execution
+safety. The app must not merge liquidity or order books across providers unless a
+later explicit cross-venue aggregation decision is approved.
+
+The market list may merge search results from multiple providers into one
+scrollable rail, but each row must retain provider identity and selection must
+still target exactly one provider-backed market/outcome. Pagination cursors,
+offsets, raw provider payloads, and provider SDK clients stay outside React.
+
 ## Read-only market data path
 
 Minimum implementation path:
 
 ```txt
-Provider selection
-  -> market discovery/configured fallback
+Unified market discovery/configured fallback
   -> selected outcome/instrument
+  -> TradableMarketRef
   -> provider order book snapshot
   -> normalized bids/asks
   -> LadderModel rows

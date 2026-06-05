@@ -42,6 +42,7 @@ Only `docs/ai/context-handoff.md` may define the current next action. If another
 | Monetization | `docs/product/MONETIZATION_MODEL.md`, `docs/adr/ADR-0010-fair-monetization-model.md` | Fees/revenue share are a preferred hypothesis, disabled by default. |
 | Desktop UI/product design | `docs/desktop/` route docs, `docs/adr/ADR-0008-desktop-terminal-design-and-skills.md` | Specialized terminal UI, not a generic dashboard. |
 | Landing strategy and copy | `docs/landing/`, `docs/specs/LANDING_PAGE_SPEC.md`, `docs/legal/LEGAL_OPERATING_MODEL.md` | Landing is not a trading surface. |
+| Localization and UI copy catalogs | `docs/specs/LOCALIZATION_SPEC.md`, `packages/i18n` | Localized labels are presentation content and must not redefine trading state or legal gates. |
 | Codex workflow and quality gates | `docs/ai/CODEX_OPERATING_MODEL.md`, `docs/ai/CODEX_GOALS.md`, `docs/ai/QUALITY_GATES.md`, `docs/ai/SKILLS_REGISTRY.md` | Use one small goal at a time. |
 | Launch readiness | `docs/launch/LAUNCH_READINESS_CHECKLIST.md`, `docs/launch/LIVE_SMOKE_TEST.md`, `docs/status/TIME_LOG.md` | Checklists and time logs are traceability/support artifacts; the handoff controls current next action. |
 
@@ -103,7 +104,7 @@ Read:
 
 ## Route D - Provider adapters
 
-Use for Polymarket/Kalshi market discovery, market data, WebSocket/polling, authentication, account metrics, order placement, cancellation, or paid routing.
+Use for Polymarket/Kalshi market discovery, market data, official SDK/source-of-truth client decisions, WebSocket/polling, authentication, account metrics, order placement, cancellation, or paid routing.
 
 Read:
 
@@ -226,9 +227,21 @@ Route C + `docs/ai/CODEX_GOALS.md#goal-02--domain-core-with-tests`
 
 Route E + `docs/ai/CODEX_GOALS.md#goal-03--tauri-desktop-shell-with-provider-ready-states`
 
+### Add normalized multi-venue contracts
+
+Route B + Route C + Route D + `docs/ai/CODEX_GOALS.md#goal-04a--normalized-multi-venue-contracts`
+
 ### Add complete provider read-only live data
 
 Route D + `docs/ai/CODEX_GOALS.md#goal-04--complete-provider-read-only-data`
+
+### Add official provider runtime and WebSocket streaming
+
+Route B + Route D + Route E + Route F + `docs/ai/CODEX_GOALS.md#goal-04b--official-provider-runtime-and-websocket-streaming`
+
+### Add unified multi-venue desktop market experience
+
+Route D + Route E + Route J + `docs/ai/CODEX_GOALS.md#goal-04c--unified-multi-venue-desktop-market-experience`
 
 ### Add paper/live-dry-run order intent and audit log
 

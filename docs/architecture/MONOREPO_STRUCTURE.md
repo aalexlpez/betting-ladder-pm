@@ -33,6 +33,9 @@ packages/execution
 packages/ui
   Shared React components.
 
+packages/i18n
+  Typed locale catalogs and locale resolution helpers for visible product copy.
+
 packages/config
   Shared TypeScript, lint, test, and build config.
 ```
@@ -41,6 +44,7 @@ packages/config
 
 ```txt
 apps/*
+  -> packages/i18n
   -> packages/ui
   -> packages/execution
   -> packages/market-data
@@ -48,6 +52,9 @@ apps/*
 
 packages/ui
   -> packages/core
+
+packages/i18n
+  -> no internal packages
 
 packages/execution
   -> packages/core
